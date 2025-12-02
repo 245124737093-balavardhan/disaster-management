@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GEO ALERT SAFETY</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 0; background: #f4f8fb; }
+  header { background: #d9534f; color: white; padding: 15px; text-align: center; }
+  nav { display: flex; justify-content: center; background: #333; flex-wrap: wrap; }
+  nav a { color: white; padding: 14px 20px; text-decoration: none; }
+  nav a:hover { background: #575757; }
+  section { padding: 20px; }
+  .alert-box, #disasterBox { background: #ffe0e0; border: 1px solid #ff4c4c; padding: 10px; margin-bottom: 20px; color: #a30000; font-weight: bold; }
+  .card { background: white; border-radius: 5px; padding: 15px; margin: 10px 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+  footer { background: #333; color: white; text-align: center; padding: 10px; margin-top: 20px; }
+  button { background: #d9534f; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; }
+  button:hover { background: #c9302c; }
+  input, textarea { width: 100%; padding: 8px; margin: 5px 0; }
+  #map { height: 400px; width: 100%; border: 1px solid #ccc; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Crisis Management and Alert System</h1>
+  <p>Stay Safe | Get Help | Save Lives</p>
+</header>
+
+<nav>
+  <a href="#alerts">Alerts</a>
+  <a href="#resources">Resources</a>
+  <a href="#contacts">Contacts</a>
+  <a href="#report">Report</a>
+  <a href="#shelters">Shelters</a>
+</nav>
+
+<!-- Disaster Alerts Section -->
+<section id="alerts">
+  <h2>🌍 Live Disaster Alerts</h2>
+  <div id="disasterBox">Loading disaster data...</div>
+  <button onclick="loadDisasters()">Refresh Alerts</button>
+</section>
+
+<!-- Safety Resources -->
+<section id="resources">
+  <h2>📘 Safety Resources</h2>
+  <div class="card"><h3>Earthquake Safety</h3><p>Drop, Cover, and Hold On during an earthquake. Stay away from windows.</p></div>
+  <div class="card"><h3>Flood Safety</h3><p>Move to higher ground immediately. Avoid driving in flooded areas.</p></div>
+  <div class="card"><h3>Fire Safety</h3><p>Use nearest exit. Avoid elevators. Crawl low under smoke.</p></div>
+</section>
+
+<!-- Emergency Contacts -->
+<section id="contacts">
+  <h2>📞 Emergency Contacts</h2>
+  <div class="card">
+    <p><strong>National Disaster Helpline:</strong> 108</p>
+    <p><strong>Police:</strong> 100</p>
+    <p><strong>Fire:</strong> 101</p>
+    <p><strong>Ambulance:</strong> 102</p>
+  </div>
+</section>
+
+<!-- Report Incident -->
+<section id="report">
+  <h2>📝 Report an Incident</h2>
+  <form onsubmit="submitReport(event)">
+    <label>Your Name:</label><br>
+    <input type="text" id="name" required><br>
+    <label>Location:</label><br>
+    <input type="text" id="location" required><br>
+    <label>Details:</label><br>
+    <textarea id="details" required></textarea><br>
+    <button type="submit">Submit Report</button>
+  </form>
+  <p id="reportMsg"></p>
+</section>
+
+<!-- Safe Shelters Map -->
+<section id="shelters">
+  <h2>📍 Safe Shelters & Relief Centers</h2>
+  <p>Find the nearest safe shelter in case of emergency.</p>
+  <div id="map"></div>
+</section>
+
+<footer>
+  <p>&copy; 2025 Crisis Management Portal | Stay Safe</p>
+</footer>
+
+<script>
+// ------------------ Fetch & Display Disaster Alerts ------------------
+async function loadDisasters() {
+  const box = document.getElementById("disasterBox");
+  box.innerHTML = "Fetching latest disaster data...";
+
+  try {
+    // 1️⃣ USGS Earthquake Alerts (last 24 hours)
+    const eqResponse = await fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson');
+    const eqData = await eqResponse.json();
+    let eqAlerts = eqData.features.slice(0,5).map(eq => {
+      return `🌐 Earthquake: M${eq.properties.mag} - ${eq.properties.place}`;
+    }).join('<br>');
+
+    // 2️⃣ ReliefWeb Disaster Reports
+    const rwResponse = await fetch('https://api.reliefweb.int/v1/disasters?limit=5');
+    const rwData = await rwResponse.json();
+    let rwAlerts = rwData.data.map(disaster => {
+      return `🆘 ${disaster.fields.name} - ${disaster.fields.country[0].name}`;
+    }).join('<br>');
+
+    // 3️⃣ Optional: OpenWeatherMap Alerts (Hyderabad example)
+    // Replace YOUR_OPENWEATHER_API_KEY with your key
+    // const weatherResponse = await fetch(`https://api.openweathermap.org/data/3.0/onecall?lat=17.3850&lon=78.4867&exclude=current,minutely,hourly,daily&appid=2f435c3fb5c0a03b8c085a7e9eceaa3b`);
+    // const weatherData = await weatherResponse.json();
+    // let weatherAlerts = weatherData.alerts ? weatherData.alerts.map(a => `⚠️ ${a.event}: ${a.description}`).join('<br>') : 'No weather alerts.';
+
+    box.innerHTML = `
+      <h3>Earthquake Alerts</h3>${eqAlerts}
+      <h3>ReliefWeb Reports</h3>${rwAlerts}
+      <!--<h3>Weather Alerts</h3>${weatherAlerts}-->`;
+    
+    addEarthquakeMarkers(eqData.features);
+
+  } catch (error) {
+    box.innerHTML = "❌ Error fetching disaster data. Please try again.";
+    console.error(error);
+  }
+}
+
+// ------------------ Report Submission ------------------
+function submitReport(event) {
+  event.preventDefault();
+  document.getElementById("reportMsg").innerText = "✅ Thank you! Your report has been submitted.";
+  document.getElementById("name").value = "";
+  document.getElementById("location").value = "";
+  document.getElementById("details").value = "";
+}
+
+// ------------------ Google Map ------------------
+let map;
+function initMap() {
+  const center = { lat: 17.3850, lng: 78.4867 }; // Hyderabad
+  map = new google.maps.Map(document.getElementById("map"), {
+    zoom: 7,
+    center: center
+  });
+
+  const shelters = [
+    { name: "Relief Camp - Secunderabad", lat: 17.4399, lng: 78.4983 },
+    { name: "Osmania General Hospital", lat: 17.3724, lng: 78.4803 },
+    { name: "Nampally Shelter", lat: 17.3910, lng: 78.4746 }
+  ];
+
+  shelters.forEach(shelter => {
+    const marker = new google.maps.Marker({
+      position: { lat: shelter.lat, lng: shelter.lng },
+      map: map,
+      title: shelter.name,
+      icon: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png"
+    });
+    const info = new google.maps.InfoWindow({ content: `<b>${shelter.name}</b>` });
+    marker.addListener("click", () => info.open(map, marker));
+  });
+}
+
+// Add earthquake markers dynamically
+function addEarthquakeMarkers(earthquakes) {
+  if (!map) return;
+  earthquakes.slice(0,10).forEach(eq => {
+    const coords = { lat: eq.geometry.coordinates[1], lng: eq.geometry.coordinates[0] };
+    const marker = new google.maps.Marker({
+      position: coords,
+      map: map,
+      title: `M${eq.properties.mag} - ${eq.properties.place}`,
+      icon: "https://maps.google.com/mapfiles/ms/icons/red-dot.png"
+    });
+    const info = new google.maps.InfoWindow({
+      content: `<b>Magnitude:</b> ${eq.properties.mag}<br><b>Location:</b> ${eq.properties.place}`
+    });
+    marker.addListener("click", () => info.open(map, marker));
+  });
+}
+
+// Load alerts on page load
+window.onload = loadDisasters;
+</script>
+
+<!-- Google Maps API -->
+<script async
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBhjTNqg-wBfi5Dq6vk5uWWlocs3k_aGpc&callback=initMap">
+</script>
+</body>
+</html>
